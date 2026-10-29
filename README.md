@@ -119,7 +119,43 @@ CORS_ORIGINS=["http://localhost:8080"]
 Restart the API after changing settings. Allowed methods are GET, POST, PUT,
 DELETE, and OPTIONS; Authorization and Content-Type headers are permitted.
 
-Deployment, Docker, and CI/CD are not included.
+## Hosting FastAPI and PostgreSQL on Render
+
+`render.yaml` defines a free Python web service and a free PostgreSQL 18
+database in the same region. Render supplies the private database URL and
+generates a fresh JWT signing secret; your local `.env` is not uploaded.
+This starts with a separate empty cloud database, not a copy of your local rows.
+
+To deploy from the Render dashboard:
+
+1. Push this project's deployment files to the `main` branch on GitHub.
+2. Choose **New > Blueprint**, connect your GitHub repository, and select
+   `render.yaml`.
+3. Review that both resources use the **Free** plan and apply the Blueprint.
+4. Wait for deployment, then open the web service's URL followed by `/docs`.
+5. Check `/health`; a successful response confirms database connectivity.
+
+The build command is `uv sync --locked --no-dev`. The startup script applies
+`alembic upgrade head` before running Uvicorn on Render's assigned port.
+Free services do not have pre-deploy commands, so migrations run at each startup.
+For a future multi-instance paid deployment, move migrations into a single
+pre-deploy step instead.
+
+`DATABASE_URL` overrides the individual local database settings. Standard
+Render PostgreSQL URLs are converted to the installed Psycopg 3 driver.
+External access to the hosted database is disabled in the Blueprint; the API
+uses Render's private connection. No local database password is shared.
+
+The hosted CORS list starts empty because no separate frontend is deployed.
+Swagger at `/docs` works from the API's own origin. When you deploy a frontend,
+set `CORS_ORIGINS` in Render to its exact origin as a JSON list.
+
+**Free-plan limits:** Render's free PostgreSQL expires after 30 days. Free web
+services sleep after 15 minutes without requests and take time to wake up.
+See [Render's free plan documentation](https://render.com/docs/free).
+The Blueprint does not choose paid resources or upgrade plans automatically.
+
+Docker and CI/CD are not included.
 
 ## Verification
 

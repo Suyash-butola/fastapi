@@ -1,9 +1,12 @@
 """Course app with Alembic-managed database migrations."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
+from .database import engine
 from .routers import auth, post, user, vote
 
 
@@ -19,6 +22,16 @@ app.include_router(post.router)
 app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(vote.router)
+
+
+@app.get("/health", tags=["Health"])
+def health():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        raise HTTPException(status_code=503, detail="Database unavailable") from None
+    return {"status": "ok"}
 
 
 @app.get("/")
